@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import json
 import os
 import random
@@ -414,27 +415,36 @@ def makePaths(version, side, removal_bool):
 
 def main():
     checkjava()
-    print("Decompiling using official mojang mappings (Default option are in uppercase, you can just enter)")
-    removal_bool = 1 if input("Do you want to clean up old runs? (y/N): ") in ["y", "yes"] else 0
-    decompiler = input("Please input you decompiler choice: fernflower or cfr (CFR/f): ")
-    decompiler = decompiler.lower() if decompiler.lower() in ["fernflower", "cfr", "f"] else "cfr"
-    snapshot,latest=getLatestVersion()
-    if snapshot==None or latest==None:
+    snapshot, latest = getLatestVersion()
+    if snapshot == None or latest == None:
         print("Error getting latest versions, please refresh cache")
         exit()
-    version = input(f"""Please input a valid version starting from 19w36a (snapshot) and 1.14.4 (releases),\nUse 'snap' for latest snapshot ({snapshot}) or 'latest' for latest version ({latest}) :""") or "1.15.2"
-    if version in ["snap","s"]:
+
+    parser = argparse.ArgumentParser(description="Decompile MC using mojang mappings")
+    parser.add_argument("-r", "--removeold", help="Clean up old runs", action="store_true")
+    parser.add_argument("-d", "--decompiler", choices=["cfr", "f"], help="Decompiler to use (CFR or Fernflower, defaults to Fernflower)", default="f")
+    parser.add_argument("-m", "--manual", help="Manual mode, defaults to auto", action="store_true")
+    parser.add_argument("side", choices=["client", "server"], help="Side to decompile (Client or Server)")
+    parser.add_argument("version", help="Version to decompile (or latest/snapshot)")
+
+    args = parser.parse_args()
+    print(args)
+
+    print("Decompiling using official mojang mappings (Default option are in uppercase, you can just enter)")
+    removal_bool = 1 if args.removeold else 0
+    decompiler = args.decompiler
+    version = args.version
+    if version in ["snapshot","snap","s"]:
         version=snapshot
     if version in ["latest","l"]:
         version=latest
-    side = input("Please select either client or server side (C/s) : ")
-    side = side.lower() if side.lower() in ["client", "server", "c", "s"] else CLIENT
-    side = CLIENT if side in ["client", "c"] else SERVER
+    side = args.side
+    side = CLIENT if side == "client" else SERVER
     decompiled_version = makePaths(version, side, removal_bool)
     getManifest()
     getVersionManifest(version)
-    r = input("Auto Mode? (Y/n): ") or "y"
-    if r.lower() == "y":
+    manual = args.manual
+    if not manual:
         getMappings(version, side)
         convertMappings(version, side)
         getVersionJar(version, side)
