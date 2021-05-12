@@ -84,6 +84,8 @@ def checkjava():
         input("Aborting, press anything to exit")
         sys.exit(1)
 
+    print(results)
+
 
 def getManifest():
     if Path(f"versions/version_manifest.json").exists() and Path(f"versions/version_manifest.json").is_file():
@@ -195,6 +197,7 @@ def getMappings(version, side):
 
 
 def remap(version, side):
+    print(subprocess.run(['java','--version'],stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=True))
     print('=== Remapping jar using SpecialSource ====')
     t = time.time()
     path = Path(f'versions/{version}/{side}.jar')
@@ -206,12 +209,12 @@ def remap(version, side):
                 sys.exit()
             path = path_temp
     mapp = Path(f'mappings/{version}/{side}.tsrg')
-    specialsource = Path('./lib/SpecialSource-1.8.6.jar')
+    specialsource = Path('./lib/SpecialSource-1.9.0.jar')
     if path.exists() and mapp.exists() and specialsource.exists() and path.is_file() and mapp.is_file() and specialsource.is_file():
         path = path.resolve()
         mapp = mapp.resolve()
         specialsource = specialsource.resolve()
-        subprocess.run(['java',
+        subprocess.run(['C:\\Program Files\\Java\\jdk-16.0.1\\bin\\java',
                         '-jar', specialsource.__str__(),
                         '--in-jar', path.__str__(),
                         '--out-jar', f'./src/{version}-{side}-temp.jar',
@@ -222,7 +225,7 @@ def remap(version, side):
         t = time.time() - t
         print('Done in %.1fs' % t)
     else:
-        print(f'ERROR: Missing files: ./lib/SpecialSource-1.8.6.jar or mappings/{version}/{side}.tsrg or versions/{version}/{side}.jar')
+        print(f'ERROR: Missing files: ./lib/SpecialSource-1.9.0.jar or mappings/{version}/{side}.tsrg or versions/{version}/{side}.jar')
         input("Aborting, press anything to exit")
         sys.exit()
 
@@ -235,7 +238,7 @@ def decompileFernFlower(decompiled_version, version, side):
     if path.exists() and fernflower.exists():
         path = path.resolve()
         fernflower = fernflower.resolve()
-        subprocess.run(['java',
+        subprocess.run(['C:\\Program Files\\Java\\jdk-16.0.1\\bin\\java',
                         '-Xmx2G',
                         '-Xms1G',
                         '-jar', fernflower.__str__(),
