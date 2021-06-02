@@ -214,7 +214,7 @@ def remap(version, side):
         path = path.resolve()
         mapp = mapp.resolve()
         specialsource = specialsource.resolve()
-        subprocess.run(['C:\\Program Files\\Java\\jdk-16.0.1\\bin\\java',
+        subprocess.run(['java',
                         '-jar', specialsource.__str__(),
                         '--in-jar', path.__str__(),
                         '--out-jar', f'./src/{version}-{side}-temp.jar',
@@ -238,7 +238,7 @@ def decompileFernFlower(decompiled_version, version, side):
     if path.exists() and fernflower.exists():
         path = path.resolve()
         fernflower = fernflower.resolve()
-        subprocess.run(['C:\\Program Files\\Java\\jdk-16.0.1\\bin\\java',
+        subprocess.run(['java',
                         '-Xmx2G',
                         '-Xms1G',
                         '-jar', fernflower.__str__(),
