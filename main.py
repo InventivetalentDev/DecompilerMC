@@ -462,7 +462,7 @@ def main():
         getMappings(version, side)
         convertMappings(version, side)
         getVersionJar(version, side)
-        if side == 'server' and numeric_version >= 2139:
+        if side == 'server' and numeric_version == 2139:
             print("side=server and version>=21w39a")
             extractServer(version, 'server')
         remap(version, side)
