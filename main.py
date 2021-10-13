@@ -198,12 +198,13 @@ def getMappings(version, side):
 
 def extractServer(version, side):
     print(f'Extracting server jar from META-INF/versions/{version}/server-{version}.jar')
+    os.mkdir(f'versions/{version}/server-inner')
     with zipfile.ZipFile(f'versions/{version}/{side}.jar') as z:
         z.extract(f'META-INF/versions/{version}/server-{version}.jar', f'versions/{version}/{side}-inner')
     print(f'Moving server-inner/META-INF/versions/{version}/server-{version}.jar to versions/{version}/{side}.jar')
     os.remove(f'versions/{version}/{side}.jar')
     os.rename(f'versions/{version}/server-inner/META-INF/versions/{version}/server-{version}.jar', f'versions/{version}/{side}.jar')
-    os.remove(f'versions/{version}/server-inner')
+    shutil.rmtree(f'versions/{version}/server-inner')
 
 
 def remap(version, side):
@@ -462,7 +463,7 @@ def main():
         getMappings(version, side)
         convertMappings(version, side)
         getVersionJar(version, side)
-        if side == 'server' and numeric_version == 2139:
+        if side == 'server' and numeric_version >= 2139:
             print("side=server and version>=21w39a")
             extractServer(version, 'server')
         remap(version, side)
