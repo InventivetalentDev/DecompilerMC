@@ -463,9 +463,12 @@ def main():
         getMappings(version, side)
         convertMappings(version, side)
         getVersionJar(version, side)
-        if side == 'server' and numeric_version >= 2139:
-            print("side=server and version>=21w39a")
-            extractServer(version, 'server')
+        #if side == 'server' and numeric_version >= 2139:
+        #    print("side=server and version>=21w39a")
+        #
+        # Extract server (>= 21w39a)
+        extractServer(version, 'server')
+
         remap(version, side)
         if decompiler.lower() == "cfr":
             decompileCFR(decompiled_version, version, side)
