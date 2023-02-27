@@ -9,12 +9,13 @@ import sys
 import time
 import urllib.request
 import zipfile
+import time
 from pathlib import Path
 from shutil import which
 from subprocess import CalledProcessError
 from urllib.error import HTTPError, URLError
 
-MANIFEST_LOCATION = "https://launchermeta.mojang.com/mc/game/version_manifest.json"
+MANIFEST_LOCATION = f"https://launchermeta.mojang.com/mc/game/version_manifest.json?{int(time.time())}"
 CLIENT = "client"
 SERVER = "server"
 
@@ -276,7 +277,7 @@ def decompileFernFlower(decompiled_version, version, side):
         t = time.time() - t
         print('Done in %.1fs' % t)
         print(f'Remove Extra Jar file (file was decompressed in {decompiled_version}/{side})? (y/n): ')
-        response = input() or "y"
+        response = input() or "n"
         if response == 'y':
             print(f'- Removing -> {decompiled_version}/{side}/{version}-{side}-temp.jar')
             os.remove(f'./src/{decompiled_version}/{side}/{version}-{side}-temp.jar')
