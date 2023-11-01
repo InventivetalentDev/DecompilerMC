@@ -15,7 +15,7 @@ from shutil import which
 from subprocess import CalledProcessError
 from urllib.error import HTTPError, URLError
 
-MANIFEST_LOCATION = f"https://launchermeta.mojang.com/mc/game/version_manifest.json?{int(time.time())}"
+MANIFEST_LOCATION = f"https://piston-meta.mojang.com/mc/game/version_manifest_v2.json?{int(time.time())}"
 CLIENT = "client"
 SERVER = "server"
 
