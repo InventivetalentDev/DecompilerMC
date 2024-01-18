@@ -276,11 +276,11 @@ def decompileFernFlower(decompiled_version, version, side):
             z.extractall(path=f'./src/{decompiled_version}/{side}')
         t = time.time() - t
         print('Done in %.1fs' % t)
-        print(f'Remove Extra Jar file (file was decompressed in {decompiled_version}/{side})? (y/n): ')
-        response = input() or "n"
-        if response == 'y':
-            print(f'- Removing -> {decompiled_version}/{side}/{version}-{side}-temp.jar')
-            os.remove(f'./src/{decompiled_version}/{side}/{version}-{side}-temp.jar')
+        #print(f'Remove Extra Jar file (file was decompressed in {decompiled_version}/{side})? (y/n): ')
+        #response = input() or "n"
+        #if response == 'y':
+        #    print(f'- Removing -> {decompiled_version}/{side}/{version}-{side}-temp.jar')
+        #    os.remove(f'./src/{decompiled_version}/{side}/{version}-{side}-temp.jar')
     else:
         print(f'ERROR: Missing files: ./lib/fernflower.jar or ./src/{version}-{side}-temp.jar')
         input("Aborting, press anything to exit")
