@@ -227,7 +227,7 @@ def remap(version, side):
                 sys.exit()
             path = path_temp
     mapp = Path(f'mappings/{version}/{side}.tsrg')
-    specialsource = Path('./lib/SpecialSource-1.9.0.jar')
+    specialsource = Path('./lib/SpecialSource-1.11.5-SNAPSHOT-shaded.jar')
     if path.exists() and mapp.exists() and specialsource.exists() and path.is_file() and mapp.is_file() and specialsource.is_file():
         path = path.resolve()
         mapp = mapp.resolve()
@@ -291,7 +291,7 @@ def decompileCFR(decompiled_version, version, side):
     print('=== Decompiling using CFR (silent) ===')
     t = time.time()
     path = Path(f'./src/{version}-{side}-temp.jar')
-    cfr = Path('./lib/cfr-0.146.jar')
+    cfr = Path('./lib/cfr-0.2.2.jar')
     if path.exists() and cfr.exists():
         path = path.resolve()
         cfr = cfr.resolve()
