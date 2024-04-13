@@ -252,7 +252,7 @@ def decompileFernFlower(decompiled_version, version, side):
     print('=== Decompiling using FernFlower (silent) ===')
     t = time.time()
     path = Path(f'./src/{version}-{side}-temp.jar')
-    fernflower = Path('./lib/fernflower.jar')
+    fernflower = Path('./lib/fernflower-jetbrains-java-decompiler-engine-241.14494.240.jar')
     if path.exists() and fernflower.exists():
         path = path.resolve()
         fernflower = fernflower.resolve()
