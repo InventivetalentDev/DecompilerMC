@@ -121,7 +121,7 @@ def getLatestVersion():
                 version = versions.get("release")
                 snapshot = versions.get("snapshot")
     path_to_json.unlink()
-    return snapshot,version           
+    return snapshot,version
 
 def getVersionManifest(target_version):
     if Path(f"versions/{target_version}/version.json").exists() and Path(f"versions/{target_version}/version.json").is_file():
@@ -252,13 +252,13 @@ def decompileFernFlower(decompiled_version, version, side):
     print('=== Decompiling using FernFlower (silent) ===')
     t = time.time()
     path = Path(f'./src/{version}-{side}-temp.jar')
-    fernflower = Path('./lib/fernflower-jetbrains-java-decompiler-engine-241.14494.240.jar')
+    fernflower = Path('./lib/vineflower-1.10.0.jar')
     if path.exists() and fernflower.exists():
         path = path.resolve()
         fernflower = fernflower.resolve()
         subprocess.run(['java',
-                        '-Xmx2G',
-                        '-Xms1G',
+                        '-Xmx8G',
+                        '-Xms2G',
                         '-jar', fernflower.__str__(),
                         '-hes=0',  # hide empty super invocation deactivated (might clutter but allow following)
                         '-hdc=0',  # hide empty default constructor deactivated (allow to track)
@@ -269,11 +269,11 @@ def decompileFernFlower(decompiled_version, version, side):
                         '-log=WARN',
                         path.__str__(), f'./src/{decompiled_version}/{side}'
                         ], check=True)
-        print(f'- Removing -> {version}-{side}-temp.jar')
-        os.remove(f'./src/{version}-{side}-temp.jar')
-        print("Decompressing remapped jar to directory")
-        with zipfile.ZipFile(f'./src/{decompiled_version}/{side}/{version}-{side}-temp.jar') as z:
-            z.extractall(path=f'./src/{decompiled_version}/{side}')
+        # print(f'- Removing -> {version}-{side}-temp.jar')
+        # os.remove(f'./src/{version}-{side}-temp.jar')
+        # print("Decompressing remapped jar to directory")
+        # with zipfile.ZipFile(f'./src/{decompiled_version}/{side}/{version}-{side}-temp.jar') as z:
+        #     z.extractall(path=f'./src/{decompiled_version}/{side}')
         t = time.time() - t
         print('Done in %.1fs' % t)
         #print(f'Remove Extra Jar file (file was decompressed in {decompiled_version}/{side})? (y/n): ')
@@ -296,7 +296,7 @@ def decompileCFR(decompiled_version, version, side):
         path = path.resolve()
         cfr = cfr.resolve()
         subprocess.run(['java',
-                        '-Xmx2G',
+                        '-Xmx4G',
                         '-Xms1G',
                         '-jar', cfr.__str__(),
                         path.__str__(),
