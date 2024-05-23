@@ -256,6 +256,7 @@ def decompileFernFlower(decompiled_version, version, side):
     if path.exists() and fernflower.exists():
         path = path.resolve()
         fernflower = fernflower.resolve()
+        print(f'Running {fernflower} on {path}')
         subprocess.run(['java',
                         '-Xmx8G',
                         '-Xms2G',
