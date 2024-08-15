@@ -252,7 +252,7 @@ def decompileFernFlower(decompiled_version, version, side):
     print('=== Decompiling using FernFlower (silent) ===')
     t = time.time()
     path = Path(f'./src/{version}-{side}-temp.jar')
-    fernflower = Path('./lib/vineflower-1.11.0.jar')
+    fernflower = Path('./lib/vineflower-1.11.0+local.jar')
     if path.exists() and fernflower.exists():
         path = path.resolve()
         fernflower = fernflower.resolve()
