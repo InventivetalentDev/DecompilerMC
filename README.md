@@ -86,6 +86,13 @@ An interrupted run leaves a half-decompiled `src/<version>/<side>`. That is dete
 `src/<version>/.<side>.complete` marker) and redone rather than committed, so it is safe to
 Ctrl-C a long `--missing` run and start it again.
 
+**Commit signing.** If `commit.gpgsign` is on and the signer is an interactive agent (1Password,
+gpg-agent), every commit wants a human to approve it, which stalls an unattended backfill. Pass
+`--no-sign` to commit with `commit.gpgsign=false` for that run. A failing commit is retried
+(`--commit-retries`, default 3) and, crucially, is *not* rolled back: the mirror is already
+staged on the version branch, so re-running resumes from there instead of re-decompiling and
+re-mirroring. Only a failure during the mirror itself rolls back.
+
 For versions that still have mappings, `../minecraft-mappings` gets the same treatment
 (`client.txt`, `client.tsrg`, `server.txt`, `server.tsrg`). For unobfuscated versions there are no
 mappings, so that repo is left alone.

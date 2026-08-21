@@ -122,12 +122,29 @@ def branches(repo):
     return set(git(repo, 'for-each-ref', '--format=%(refname:short)', 'refs/heads').splitlines())
 
 
+def pendingVersion(repo):
+    """The version branch that is checked out but whose commit was never made, if any.
+
+    That is what a failed `git commit` leaves behind: the branch exists and the content
+    is mirrored and staged, but the tip is still the previous version's commit.
+    """
+    head = git(repo, 'rev-parse', '--abbrev-ref', 'HEAD')
+    if head == 'HEAD':
+        return None
+    return head if git(repo, 'log', '-1', '--format=%s') != head else None
+
+
 def requireCleanRepo(repo):
     log(f'checking {repo.name} is clean (this takes a while on a big repo)')
     dirty = git(repo, 'status', '--porcelain', '--untracked-files=normal')
-    if dirty:
-        raise Fail(f'{repo} has uncommitted changes, refusing to touch it:\n'
-                   + '\n'.join(dirty.splitlines()[:20]))
+    if not dirty:
+        return
+    pending = pendingVersion(repo)
+    if pending:
+        log(f'{repo.name}: {pending} is staged but uncommitted from an earlier run, will resume it')
+        return
+    raise Fail(f'{repo} has uncommitted changes, refusing to touch it:\n'
+               + '\n'.join(dirty.splitlines()[:20]))
 
 
 def mirror(src: Path, dst: Path):
@@ -173,42 +190,76 @@ def mirror(src: Path, dst: Path):
     log(f'  {copied} file(s) written, {removed} removed')
 
 
-def commitVersion(repo, version, populate, dry_run, author=None):
+def commitVersion(repo, version, populate, dry_run, author=None, sign=True, retries=3):
     """Branch off the current HEAD, replace the tracked content, and commit."""
     existing = branches(repo)
+    resuming = False
     if version in existing:
-        log(f'{repo.name}: branch {version} already exists, skipping')
-        return False
+        if git(repo, 'log', '-1', '--format=%s', version) == version:
+            log(f'{repo.name}: branch {version} already exists, skipping')
+            return False
+        # branch created but the commit never landed -- pick up where we left off
+        log(f'{repo.name}: {version} exists without its commit, resuming')
+        resuming = True
 
     base = git(repo, 'rev-parse', '--abbrev-ref', 'HEAD')
     if base == 'HEAD':  # detached
         base = git(repo, 'rev-parse', 'HEAD')
-    log(f'{repo.name}: branching {version} off {base}')
+    log(f'{repo.name}: {"resuming" if resuming else "branching"} {version}'
+        + ('' if resuming else f' off {base}'))
     if dry_run:
         log(f'{repo.name}: [dry-run] would populate, commit "{version}"')
         return True
 
     name, email = author or repoIdentity(repo)
     ident = ['-c', f'user.name={name}', '-c', f'user.email={email}']
-    log(f'{repo.name}: committing as {name} <{email}>')
+    if not sign:
+        # Signing shells out to an agent (1Password et al) that may want a human to
+        # approve every commit, which stalls an unattended run.
+        ident += ['-c', 'commit.gpgsign=false']
+    log(f'{repo.name}: committing as {name} <{email}>{"" if sign else " (unsigned)"}')
 
-    git(repo, 'checkout', '-b', version)
+    if resuming:
+        git(repo, 'checkout', version)
+    else:
+        git(repo, 'checkout', '-b', version)
+
     try:
         populate(repo)
         git(repo, 'add', '-A')
-        if not git(repo, 'status', '--porcelain'):
-            log(f'{repo.name}: no content change vs {base}, committing an empty commit to keep the chain')
-            git(repo, *ident, 'commit', '--allow-empty', '-m', version)
-        else:
-            git(repo, *ident, 'commit', '-m', version)
     except Exception:
-        # leave the repo where we found it rather than on a half-built branch
-        log(f'{repo.name}: failed, rolling back to {base}')
+        # Nothing valuable is staged yet, so put the repo back where we found it.
+        log(f'{repo.name}: populate failed, rolling back to {base}')
         git(repo, 'reset', '--hard', check=False)
         git(repo, 'clean', '-fd', check=False)  # -d but not -x: never touches ignored assets
         git(repo, 'checkout', base, check=False)
-        git(repo, 'branch', '-D', version, check=False)
+        if not resuming:
+            git(repo, 'branch', '-D', version, check=False)
         raise
+
+    empty = not git(repo, 'status', '--porcelain')
+    if empty:
+        log(f'{repo.name}: no content change vs {base}, committing an empty commit to keep the chain')
+    args = ['commit', '-m', version] + (['--allow-empty'] if empty else [])
+
+    # The mirror is done and staged by now; a failing commit must never throw that away.
+    # Signing agents in particular fail transiently (locked vault, denied prompt).
+    for attempt in range(1, retries + 1):
+        try:
+            git(repo, *ident, *args)
+            break
+        except Fail as e:
+            reason = str(e).strip().splitlines()[-1][:120]
+            if attempt < retries:
+                log(f'{repo.name}: commit attempt {attempt}/{retries} failed ({reason}); retrying in 10s')
+                time.sleep(10)
+                continue
+            raise Fail(
+                f'{repo}: could not commit {version} after {retries} attempts: {reason}\n'
+                f'The content is mirrored and staged on branch {version}, so nothing is lost.\n'
+                f'Finish it by hand:\n'
+                f'    (cd {repo} && git commit -m {version})\n'
+                f'or re-run publish with --no-sign to skip commit signing.')
     log(f'{repo.name}: committed {version} ({git(repo, "rev-parse", "--short", "HEAD")})')
     return True
 
@@ -258,7 +309,8 @@ def publish(version, manifest, args, committed):
             log(f'{repo.name}: mirroring {out} -> {repo / side}')
             mirror(out, repo / side)
 
-    if commitVersion(args.decompile_repo, version, populateDecompile, args.dry_run, args.author):
+    if commitVersion(args.decompile_repo, version, populateDecompile, args.dry_run,
+                     args.author, sign=not args.no_sign, retries=args.commit_retries):
         committed.setdefault(args.decompile_repo, []).append(version)
 
     if not mapped:
@@ -277,7 +329,8 @@ def publish(version, manifest, args, committed):
                 log(f'{repo.name}: copying {src.name}')
                 shutil.copy2(src, repo / f'{side}.{ext}')
 
-    if commitVersion(args.mappings_repo, version, populateMappings, args.dry_run, args.author):
+    if commitVersion(args.mappings_repo, version, populateMappings, args.dry_run,
+                     args.author, sign=not args.no_sign, retries=args.commit_retries):
         committed.setdefault(args.mappings_repo, []).append(version)
 
 
@@ -316,6 +369,11 @@ def main():
                    help='keep src/<version> and the downloaded jars after publishing')
     p.add_argument('--skip-clean-check', action='store_true',
                    help='skip the (slow) git status check that the repos have no uncommitted changes')
+    p.add_argument('--no-sign', action='store_true',
+                   help='commit with commit.gpgsign=false; use for unattended runs where a '
+                        'signing agent (1Password, gpg-agent) would block asking for approval')
+    p.add_argument('--commit-retries', type=int, default=3, metavar='N',
+                   help='retry a failing commit N times before giving up (default 3)')
     p.add_argument('--author', metavar='"Name <email>"',
                    help='commit as this identity (default: whoever authored the repo\'s newest commit)')
     p.add_argument('-n', '--dry-run', action='store_true',
