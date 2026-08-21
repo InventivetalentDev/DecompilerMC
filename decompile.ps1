@@ -1,11 +1,17 @@
-$version = $args[0]
-Remove-Item .\versions\version_manifest.json
-Remove-Item .\src\$version -Recurse
-Remove-Item .\versions\$version -Recurse 
-Remove-item .\mappings\$version -Recurse
+# Decompile both sides of a version into .\src\<version>\{client,server}.
+# This only decompiles -- use .\publish.py to also commit into the mc repos.
+#
+#   .\decompile.ps1 26.3-snapshot-9
+param([Parameter(Mandatory=$true)][string]$version)
 
-Start-Sleep -s 1
-Start-Process Powershell.exe -ArgumentList "python.exe .\main.py client $version"
+$python = if ($env:PYTHON) { $env:PYTHON } else { "python.exe" }
+
+Remove-Item .\versions\version_manifest.json -ErrorAction SilentlyContinue
+Remove-Item .\src\$version -Recurse -ErrorAction SilentlyContinue
+Remove-Item .\versions\$version -Recurse -ErrorAction SilentlyContinue
+Remove-Item .\mappings\$version -Recurse -ErrorAction SilentlyContinue
+
+# -y so neither run blocks on a prompt
+Start-Process $python -ArgumentList ".\main.py -y client $version"
 Start-Sleep -s 1 # Breaks for some reason if you launch these too quickly
-Start-Process Powershell.exe -ArgumentList "python.exe .\main.py server $version"
-Start-Sleep -s 1
+Start-Process $python -ArgumentList ".\main.py -y server $version"
