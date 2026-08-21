@@ -6,3 +6,6 @@ src
 main.spec
 versions
 __pycache__
+hs_err_pid*.log
+replay_pid*.log
+manifest.json
