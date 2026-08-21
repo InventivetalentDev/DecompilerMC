@@ -83,8 +83,10 @@ def hasMappings(manifest, version):
 # --------------------------------------------------------------------------- git
 
 def git(repo, *args, check=True, timeout=GIT_TIMEOUT):
-    r = subprocess.run([GIT, *args], cwd=str(repo),
-                       capture_output=True, text=True, timeout=timeout)
+    # encoding must be pinned: text=True would use the locale encoding (cp1252 on
+    # Windows) while git always speaks UTF-8, which mangles non-ASCII author names.
+    r = subprocess.run([GIT, *args], cwd=str(repo), capture_output=True,
+                       encoding='utf-8', errors='replace', timeout=timeout)
     if check and r.returncode != 0:
         hint = ''
         if 'Filename too long' in r.stderr:
@@ -105,6 +107,14 @@ def repoIdentity(repo):
     """
     name = git(repo, 'log', '-1', '--format=%an')
     email = git(repo, 'log', '-1', '--format=%ae')
+    # Guard against feeding corruption forward: this value gets written into the next
+    # commit, which the version after that reads back, so any mangling compounds.
+    if '\ufffd' in name or '\ufffd' in email:
+        raise Fail(f'{repo}: undecodable author in the last commit ({name!r} <{email!r}>). '
+                   f'Pass --author "Name <email>" explicitly.')
+    if len(name) > 100 or len(email) > 100:
+        raise Fail(f'{repo}: implausible author in the last commit ({name[:60]!r}...). '
+                   f'It looks corrupted; pass --author "Name <email>" explicitly.')
     return name, email
 
 
